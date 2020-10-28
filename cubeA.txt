@@ -1,0 +1,22 @@
+//CREATE STAR FIELD CUBE MAP
+//Uses noise to get a cube map
+
+void mainCubemap( out vec4 fragColor, in vec2 fragCoord, in vec3 rayOri, in vec3 rayDir )
+{
+    //get inverse of resolution of channel0
+    vec2 invRes = 1.0 / iChannelResolution[0].xy;
+    
+    //setup uv
+    vec2 uv = fragCoord * invRes;
+	
+    uv = uv * 0.5; //Scales the image
+    
+    // Output to cubemap
+    fragColor = texture(iChannel0, uv).rrrr;
+    
+    //Make more variation
+    uv = sq(uv);
+    fragColor += texture(iChannel0, uv).rrrr;
+    uv = uv * 0.5;
+    fragColor += texture(iChannel0, uv).rrrr;
+}

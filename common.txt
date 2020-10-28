@@ -24,17 +24,46 @@ vec4 sq(vec4 x) {
 
 // Functions for getting the length squared
 //vec2
-vec2 lengthSq(vec2 x) {
+float lengthSq(vec2 x) {
     return dot(x, x);
 }
 //vec3
-vec3 lengthSq(vec3 x) {
+float lengthSq(vec3 x) {
     return dot(x, x);
     
 }
 //vec4
-vec4 lengthSq(vec4 x) {
+float lengthSq(vec4 x) {
     return dot(x, x);
+}
+
+// Functions for rotation
+//Rotate around the x axis6
+mat3 rotationX(float degree) {
+    mat3 rotation = mat3(
+         1.0, 0.0        , 1.0         ,
+         0.0, cos(degree), -sin(degree),
+         0.0, sin(degree), cos(degree));
+    
+    return rotation;
+}
+//Rotate around the y axis
+mat3 rotationY(float degree) {
+    mat3 rotation = mat3(
+         cos(degree) , 0.0 , sin(degree) ,
+         0.0         , 1.0 , 0.0         ,
+         -sin(degree), 0.0 , cos(degree));
+    
+    return rotation;
+}
+//Rotate around the z axis
+mat3 rotationZ(float degree) {
+    mat3 rotation = mat3(
+         cos(degree), -sin(degree), 0.0,
+         sin(degree), cos(degree) , 0.0,
+         0.0        , 0.0         , 1.0;
+    
+    return rotation;
 }
 
 //------------------------------------------------------------------------------
@@ -42,14 +71,14 @@ vec4 lengthSq(vec4 x) {
 
 // Plane
 struct sPlane {
-    vec3 basePoint;    //This is a point on the plane
-    vec3 normalVector; //This is a vector that is perpendicular to the plane
-}
+    vec3 point;    //This is a point on the plane
+    vec3 normal; //This is a vector that is perpendicular to the plane
+};
 
 //Plane constructor
 void initPlane(sPlane plane, vec3 point, vec3 normal) {
-    plane.basePoint = point;
-    plane.normalVector = normal;
+    plane.point = point;
+    plane.normal = normal;
 }
 
 //This returns a point on the plane based off of a vector
@@ -105,22 +134,22 @@ vec3 calcPlanePoint(sPlane plane, vec3 vector, vec3 vectorOrigin) {
 	// To make this simpler the equation will be turned into shorter
 	// equations that the computer can solve
 
-    float x = plane.normal.x(vectorOrigin.x + plane.point.x); //This calculates all of the xs
+    float tX = float(plane.normal.x * (vectorOrigin.x + plane.point.x)); //This calculates all of the xs
     // This is the same as
     // normal.x((lineOrigin.x + lineVector.x * t) + point.x
     // but lineVector.x * t has been moved
     
-    float y = plane.normal.y(vectorOrigin.y + plane.point.y); //This calculates all of the ys
+    float tY = float(plane.normal.y * (vectorOrigin.y + plane.point.y)); //This calculates all of the ys
     // This is the same as
     // normal.z((lineOrigin.z + lineVector.z * t) + point.z
     // but lineVector.z * t has been moved
     
-    float z = plane.normal.z(vectorOrigin.z + plane.point.z); //This calculates all of the zs
+    float tZ = float(plane.normal.z * (vectorOrigin.z + plane.point.z)); //This calculates all of the zs
     // This is the same as
     // normal.z((lineOrigin.z + lineVector.z * t) + point.z
     // but lineVector.z * t has been moved
     
-    float left = x + y + z; //this is the left side of the equation
+    float left = tX + tY + tZ; //this is the left side of the equation
     
     //This is the number that t would be multiplied by on the right side
     float right = (plane.normal.x * vector.x) + (plane.normal.z * vector.z) + (plane.normal.z * vector.z);
@@ -132,6 +161,7 @@ vec3 calcPlanePoint(sPlane plane, vec3 vector, vec3 vectorOrigin) {
     
     //Get point
     vec3 returnPoint;
+    
     
     //get x
     returnPoint.x = vectorOrigin.x + vector.x * t;
@@ -147,12 +177,12 @@ vec3 calcPlanePoint(sPlane plane, vec3 vector, vec3 vectorOrigin) {
 //Sphere
 struct sSphere {
     float radius;
-    vec4 center;
+    vec3 center;
 };
 
 //Sphere Constructor
 void initSphere(out sSphere sphere, in vec3 center, in float radius) {
-    sphere.center = asPoint(center);
+    sphere.center = center;
     sphere.radius = radius;
 }
 
@@ -184,7 +214,7 @@ void lightCalc(out float lightingIntensity, out float specularIntensity, in sSph
     float specularCoefficient = dot(normal, halfwayVector); //average of the surface normal and halfwayVector
     
     //Return specular light
-    specularIntensity = sq_5(specularCoefficient); //sq_5 so that specular light is more focused
+    specularIntensity = sq(sq(sq(sq(sq(specularCoefficient))))); //sq * 5 so that specular light is more focused
     
     
     //Calculate diffuse light
@@ -198,4 +228,56 @@ void lightCalc(out float lightingIntensity, out float specularIntensity, in sSph
     
     //Return diffuse light
     lightingIntensity = diffuseCoefficient * attenuatedIntensity;
+}
+
+//------------------------------------------------------------------------------
+//VEIWPORT
+
+struct sViewport {
+    vec4 viewportPoint; //location on the viewing plane
+    vec2 pixelCoord;    //pixel position
+    vec2 resolution;    //viewport resolution
+    vec2 resolutionInv; //inverse of the resolution
+    vec2 size;          //in-scene dimentions of the viewport
+    vec2 ndc;           //normalized device coordinate
+    vec2 uv;            //screen space coord
+    float aspectRatio;  //aspect ratio
+    float focalLength;  //distance to viewing plane
+};
+
+//Viewport Constructor
+void initViewport(out sViewport vp,
+                  in float viewportHeight, in float focalLength,
+                  in vec2 fragCoord, in vec2 resolution)
+{
+    vp.pixelCoord = fragCoord;
+    vp.resolution = resolution;
+    vp.resolutionInv = 1.0 / vp.resolution;
+    vp.aspectRatio = vp.resolution.x * vp.resolutionInv.y;
+    vp.focalLength = focalLength;
+    vp.uv = vp.pixelCoord * vp.resolutionInv;
+    vp.ndc = vp.uv * 2.0 - 1.0;
+    vp.size = vec2(vp.aspectRatio, 1.0) * viewportHeight;
+    vp.viewportPoint = vec4(vp.ndc * vp.size * 0.5, -vp.focalLength, 1.0);
+}
+
+//------------------------------------------------------------------------------
+//RAY
+
+struct sRay {
+    vec4 origin;
+    vec4 direction;
+};
+    
+//Ray Constructor
+void initRayPersp(out sRay ray,
+             	  in vec3 eyePosition, in vec3 viewport)
+{
+    // ray origin relative to viewer is the origin
+    // w = 1 because it represents a point; can ignore when using
+    ray.origin = vec4(eyePosition, 1.0);
+
+    // ray direction relative to origin is based on viewing plane coordinate
+    // w = 0 because it represents a direction; can ignore when using
+    ray.direction = vec4(viewport - eyePosition, 0.0);
 }
