@@ -1,0 +1,201 @@
+//COMMON TAB
+//UTILITY FUNCTIONS AND SHAPES
+
+//------------------------------------------------------------------------------
+//UTILITY FUNCTIONS
+
+// Functions for squaring a variable
+//float
+float sq(float x) {
+    return x * x;
+}
+//vec2
+vec2 sq(vec2 x) {
+    return x * x;
+}
+//vec3
+vec3 sq(vec3 x) {
+    return x * x;
+}
+//vec4
+vec4 sq(vec4 x) {
+    return x * x;
+}
+
+// Functions for getting the length squared
+//vec2
+vec2 lengthSq(vec2 x) {
+    return dot(x, x);
+}
+//vec3
+vec3 lengthSq(vec3 x) {
+    return dot(x, x);
+    
+}
+//vec4
+vec4 lengthSq(vec4 x) {
+    return dot(x, x);
+}
+
+//------------------------------------------------------------------------------
+//SHAPES	
+
+// Plane
+struct sPlane {
+    vec3 basePoint;    //This is a point on the plane
+    vec3 normalVector; //This is a vector that is perpendicular to the plane
+}
+
+//Plane constructor
+void initPlane(sPlane plane, vec3 point, vec3 normal) {
+    plane.basePoint = point;
+    plane.normalVector = normal;
+}
+
+//This returns a point on the plane based off of a vector
+vec3 calcPlanePoint(sPlane plane, vec3 vector, vec3 vectorOrigin) {
+    //How it works
+	//
+	// Let's start with our plane:
+	// point  = (1, 1, 1)
+	// normal = <1, 2, 3>
+	//
+	// To get our equation for our plane:
+	// normal.x(x + point.x) + normal.y(y + point.y) + normal.z(z + point.z) = 0
+	// this means the plane is
+	// 1(x + 1) + 2(y + 1) + 3(z + 1) = 0
+	//
+	// Now we want to get the intersection between a new line:
+	// lineOrigin = (0, 0, 0)
+	// lineVector = <1, 1, 1>
+	// 
+	// To get our line equations:
+	// x = lineOrigin.x + lineVector.x * t
+	// y = lineOrigin.y + lineVector.y * t
+	// z = lineOrigin.z + lineVector.z * t
+	// so our line is
+	// x = 0 + 1 * t
+	// y = 0 + 1 * t
+	// z = 0 + 1 * t
+	//
+	// To get the intesection between the line and plane you substitute the 
+	// equations for the line for the x, y, and z in the plane equation:
+	// 1(1t + 1) + 2(1t + 1) + 3(1t + 1) = 0
+	// NOTE: the 0s in the line equations are removed because they do not
+	// effect the answer
+	//
+	// Now we solve for t
+	// 
+	// Distribute the multiplication
+	// 1t + 1 + 2t + 2 + 3t + 3 = 0
+	//
+	// Add like terms
+	// 6t + 6 = 0
+	//
+	// Solve as a 2 step equation
+	// 6t + 6 = 0
+	//     -6  -6
+	// 6t     =-6
+	// 6t/6   = -6/6
+	// t = -1
+	// 
+	// t can then be inserted into the line to see the point of intersection
+	// t is negative so this point would be "behind" the vector
+	//
+	// To make this simpler the equation will be turned into shorter
+	// equations that the computer can solve
+
+    float x = plane.normal.x(vectorOrigin.x + plane.point.x); //This calculates all of the xs
+    // This is the same as
+    // normal.x((lineOrigin.x + lineVector.x * t) + point.x
+    // but lineVector.x * t has been moved
+    
+    float y = plane.normal.y(vectorOrigin.y + plane.point.y); //This calculates all of the ys
+    // This is the same as
+    // normal.z((lineOrigin.z + lineVector.z * t) + point.z
+    // but lineVector.z * t has been moved
+    
+    float z = plane.normal.z(vectorOrigin.z + plane.point.z); //This calculates all of the zs
+    // This is the same as
+    // normal.z((lineOrigin.z + lineVector.z * t) + point.z
+    // but lineVector.z * t has been moved
+    
+    float left = x + y + z; //this is the left side of the equation
+    
+    //This is the number that t would be multiplied by on the right side
+    float right = (plane.normal.x * vector.x) + (plane.normal.z * vector.z) + (plane.normal.z * vector.z);
+    // Each vector variable needs to be multiplied by the normal because that is what would have
+    // happended in the other equation
+    
+    // left = t * right
+    float t = left / right;
+    
+    //Get point
+    vec3 returnPoint;
+    
+    //get x
+    returnPoint.x = vectorOrigin.x + vector.x * t;
+    //get y
+    returnPoint.y = vectorOrigin.y + vector.y * t;
+    //get z
+    returnPoint.z = vectorOrigin.z + vector.z * t;
+    
+    return returnPoint;
+}
+
+
+//Sphere
+struct sSphere {
+    float radius;
+    vec4 center;
+};
+
+//Sphere Constructor
+void initSphere(out sSphere sphere, in vec3 center, in float radius) {
+    sphere.center = asPoint(center);
+    sphere.radius = radius;
+}
+
+//No need for a sphereCalc
+
+
+//Light
+struct pointLight {
+    vec4 center;
+    vec4 color;
+    float intensity;
+};
+    
+//Light Constructor
+void initLight(out pointLight light, in vec4 center, in vec4 color, in float intensity) {
+    light.center = center;
+    light.color = color;
+    light.intensity = intensity;
+}
+
+//Calculates light values
+void lightCalc(out float lightingIntensity, out float specularIntensity, in sSphere sphere, in pointLight light, in vec3 normal, in vec3 position, in vec3 viewport) {
+    //This gets the vector direction from the light to the point on the sphere surface
+    vec3 direction = vec3(position.x - light.center.x, position.y - light.center.y, position.z - light.center.z);
+	
+    //Calculate specular light
+    vec3 halfwayVector = normalize(direction - viewport); //lightVector - viewVector
+    
+    float specularCoefficient = dot(normal, halfwayVector); //average of the surface normal and halfwayVector
+    
+    //Return specular light
+    specularIntensity = sq_5(specularCoefficient); //sq_5 so that specular light is more focused
+    
+    
+    //Calculate diffuse light
+    float dist = sqrt(sq(direction.x) + sq(direction.y) + sq(direction.z)); //distance from surface to light
+    
+    vec3 lightNormal = normalize(light.center.xyz - position); //center of the light - surface
+    
+    float diffuseCoefficient = max(0.0, dot(normal, lightNormal)); //max so it cannot be negative
+    
+    float attenuatedIntensity = 1.0 / (1.0 + dist / light.intensity + sq(dist) / sq(light.intensity)); //This makes the light less intense
+    
+    //Return diffuse light
+    lightingIntensity = diffuseCoefficient * attenuatedIntensity;
+}
