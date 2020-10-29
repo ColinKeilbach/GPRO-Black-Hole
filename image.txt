@@ -8,7 +8,7 @@ vec4 calcColor(in sViewport vp, in sRay ray)
     vec2 uvUpRightCorner = (vp.pixelCoord + 0.5) * invRes;
     
     //return channel 1 color data
-    vec4 returnColor = texture(iChannel0, uv); //returning return color without bloom will return the samething as channel a
+    vec4 returnColor = texture(iChannel0, uv);
     
     return returnColor;
 }

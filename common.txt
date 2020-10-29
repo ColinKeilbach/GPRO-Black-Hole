@@ -59,9 +59,18 @@ mat3 rotationY(float degree) {
 //Rotate around the z axis
 mat3 rotationZ(float degree) {
     mat3 rotation = mat3(
-         cos(degree), -sin(degree), 0.0,
-         sin(degree), cos(degree) , 0.0,
-         0.0        , 0.0         , 1.0;
+         cos(degree), -sin(degree), 0.0 ,
+         sin(degree), cos(degree) , 0.0 ,
+         0.0        , 0.0         , 1.0);
+    
+    return rotation;
+}
+
+//2d Rotation Matrix
+mat2 rotate(float degree) {
+    mat2 rotation = mat2(
+        cos(degree), -sin(degree),
+        sin(degree), cos(degree));
     
     return rotation;
 }
