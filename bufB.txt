@@ -8,7 +8,21 @@ vec4 calcColor(in sViewport vp, in sRay ray)
     sSphere blackHole; //This is the visible part of the black hole
     initSphere(blackHole, vec3(0.0, 0.0, 0.0), 0.1); //at (0, 0, 1) radius of 1
     
+    
+    
+    //Displays the sun over the black hole
+    sSphere sSun;
+    initSphere(sSun, vec3(0.75, 0.9, 10.0), 1.0);
+    
     vec3 dp;
+    
+    dp.xy = ray.direction.xy - sSun.center.xy;
+    
+    if(lengthSq(dp.xy) <= sq(sSun.radius)) {
+        return texture(iChannel0, vp.uv);
+    }
+    
+    
     dp.xy = ray.direction.xy - blackHole.center.xy; //used for drawing spheres
     
     if(lengthSq(dp.xy) <= sq(blackHole.radius)){ //renders the center

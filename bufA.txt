@@ -3,17 +3,107 @@
 
 vec4 calcColor(in sViewport vp, in sRay ray)
 {
+    //Planets
+    sSphere pRed;   //Red planet
+    sSphere sSun;   //Sun (light)
+    
+    initSphere(pRed, vec3(-1.0, -0.4, -10.0), 0.1);
+    initSphere(sSun, vec3(0.75, 0.9, 1.0), 1.0);
+    
+    //Lights
+    pointLight lSun;  //This light goes in the sun
+    pointLight lHole; //This light goes on the other side of black hole to give the effect of the light coming around the black hole
+    
+    initLight(lSun, vec4(sSun.center, 0.0), vec4(1.0), 10.0); //color is white
+    initLight(lHole, -vec4(sSun.center, 0.0), lSun.color, lSun.intensity * 2.0); //same color as the sun and half intensity
+    
+    //Render Planets
+    sSphere closerPlanet, furtherPlanet;
+    
+    initSphere(closerPlanet, pRed.center, pRed.radius);
+    initSphere(furtherPlanet, sSun.center, sSun.radius);
+    
+    
+    vec3 dp;
+    dp.xy = ray.direction.xy - closerPlanet.center.xy;
+    float lSq = lengthSq(dp.xy), rSq = sq(closerPlanet.radius);
+    
+    if (lSq <= rSq) {
+        //return vec4(0.0, 1.0, 1.0, 1.0);
+        
+        // actually dz_sq for now
+        dp.z = rSq - lSq;
+        
+        vec3 position = closerPlanet.center.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
+        vec3 normal = //normalize(position - sphere.center.xyz);
+            (position - closerPlanet.center.xyz) / closerPlanet.radius;//this is more efficient because we already know the length
+        
+        vec4 color = vec4(normal * 0.5 * 0.5, 1.0);
+        
+        float lightIntensity, specularIntensity, lightIntensity2, specularIntensity2;
+        //return color;
+        
+        //This calculates the values for the lights
+        lightCalc(lightIntensity, specularIntensity, closerPlanet, lSun, normal, position, vp.viewportPoint.xyz);
+        lightCalc(lightIntensity2, specularIntensity2, closerPlanet, lHole, normal, position, vp.viewportPoint.xyz);
+        
+        vec4 returnColor = vec4(0.0);
+        
+        //This adds the lights color values to the final color
+        returnColor += (lightIntensity * lSun.color + specularIntensity * lSun.color);
+        returnColor += (lightIntensity2 * lHole.color + specularIntensity2 * lHole.color);
+        
+        //This returns the lights multiplied by the sphere color
+        return returnColor * color;
+    }
+    
+    dp.xy = ray.direction.xy - furtherPlanet.center.xy;
+    lSq = lengthSq(dp.xy);
+    rSq = sq(furtherPlanet.radius);
+    
+    if (lSq <= rSq) {
+        //return vec4(0.0, 1.0, 1.0, 1.0);
+        
+        // actually dz_sq for now
+        dp.z = rSq - lSq;
+        
+        vec3 position = furtherPlanet.center.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
+        vec3 normal = //normalize(position - sphere.center.xyz);
+            (position - furtherPlanet.center.xyz) / furtherPlanet.radius;//this is more efficient because we already know the length
+        
+        normal *= -1.0;//invert the normal so that the sun will always be bright
+        
+        vec4 color = vec4(1.0, 0.5, 0.0, 1.0);
+        
+        float lightIntensity, specularIntensity, lightIntensity2, specularIntensity2;
+        //return color;
+        
+        //This calculates the values for the lights
+        lightCalc(lightIntensity, specularIntensity, furtherPlanet, lSun, normal, position, vp.viewportPoint.xyz);
+        lightCalc(lightIntensity2, specularIntensity2, furtherPlanet, lHole, normal, position, vp.viewportPoint.xyz);
+        
+        vec4 returnColor = vec4(0.0);
+        
+        //This adds the lights color values to the final color
+        returnColor += (lightIntensity * lSun.color + specularIntensity * lSun.color);
+        returnColor += (lightIntensity2 * lHole.color + specularIntensity2 * lHole.color);
+        
+        //This returns the lights multiplied by the sphere color
+        return returnColor * color;
+    }
+    
+    
     
     //Cube Map
     vec3 cubeLoc = ray.direction.xyz;
     
-    cubeLoc = rotationY(iTime * 0.25) * cubeLoc;
+    cubeLoc = cubeLoc;
     
     vec4 returnColor = texture(iChannel0, cubeLoc);
     
     returnColor = vec4(1.0 - returnColor.r); //this inverts the colors
     
-    returnColor += vec4(0.25); //This makes the "black" of space more grey so the black hole stands out
+    returnColor += vec4(0.25); //This makes more "stars" appear and current "stars" brighter
     
     return returnColor;
 }
